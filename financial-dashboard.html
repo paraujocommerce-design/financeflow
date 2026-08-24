@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinanceFlow - Controle Financeiro Pessoal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/latest/umd/lucide.min.js"></script>
+    <style>
+        :root {
+            --primary: #fbbf24;
+            --primary-dark: #d97706;
+            --bg-dark: #0f172a;
+            --bg-dark-card: #1e293b;
+            --bg-dark-border: #334155;
+            --text-dark: #ffffff;
+            --text-dark-secondary: #cbd5e1;
+            --bg-light: #f8fafc;
+            --bg-light-card: #ffffff;
+            --bg-light-border: #e2e8f0;
+            --text-light: #0f172a;
+            --text-light-secondary: #475569;
+        }
+
+        * {
+            transition: background-color 0.3s, border-color 0.3s, color 0.3s;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-dark);
+        }
+
+        body.light-mode {
+            background-color: var(--bg-light);
+            color: var(--text-light);
+        }
+
+        .card {
+            background-color: var(--bg-dark-card);
+            border: 1px solid var(--bg-dark-border);
+            color: var(--text-dark);
+        }
+
+        body.light-mode .card {
+            background-color: var(--bg-light-card);
+            border: 1px solid var(--bg-light-border);
+            color: var(--text-light);
+        }
+
+        .header {
+            background-color: rgba(15, 23, 42, 0.8);
+            border-color: var(--bg-dark-border);
+        }
+
+        body.light-mode .header {
+            background-color: rgba(248, 250, 252, 0.8);
+            border-color: var(--bg-light-border);
+        }
+
+        .btn-gradient {
+            background: linear-gradient(135deg, #fbbf24, #d97706);
+            color: white;
+        }
+
+        .btn-gradient:hover {
+            background: linear-gradient(135deg, #fcd34d, #f59e0b);
+            transform: scale(1.05);
+        }
+
+        .input-field {
+            background-color: var(--bg-dark-border);
+            border: 1px solid var(--bg-dark-border);
+            color: var(--text-dark);
+        }
+
+        body.light-mode .input-field {
+            background-color: #f1f5f9;
+            border: 1px solid var(--bg-light-border);
+            color: var(--text-light);
+        }
+
+        .input-field::placeholder {
+            color: #94a3b8;
+        }
+
+        .status-paid {
+            background-color: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+
+        .status-pending {
+            background-color: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+        }
+
+        .status-overdue {
+            background-color: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .status-cancelled {
+            background-color: rgba(148, 163, 184, 0.2);
+            color: #94a3b8;
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #fbbf24, #d97706);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .progress-bar {
+            background-color: var(--bg-dark-border);
+        }
+
+        body.light-mode .progress-bar {
+            background-color: #e2e8f0;
+        }
+
+        .tab-active {
+            border-bottom: 2px solid #fbbf24;
+            color: #fbbf24;
+        }
+
+        .tab-inactive {
+            border-bottom: 2px solid transparent;
+            color: #64748b;
+        }
+
+        body.light-mode .tab-inactive {
+            color: #94a3b8;
+        }
+
+        .glass {
+            backdrop-filter: blur(10px);
+        }
+
+        @media (max-width: 768px) {
+            .grid-responsive {
+                display: grid;
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .grid-responsive {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body class="dark-mode" id="app">
+    <div id="root"></div>
+
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        function FinancialDashboard() {
+            const [transactions, setTransactions] = useState([]);
+            const [isDarkMode, setIsDarkMode] = useState(true);
+            const [showForm, setShowForm] = useState(false);
+            const [activeTab, setActiveTab] = useState('dashboard');
+            const [filter, setFilter] = useState('all');
+            
+            const [formData, setFormData] = useState({
+                description: '',
+                amount: '',
+                type: 'expense',
+                category: 'other',
+                date: new Date().toISOString().split('T')[0],
+                status: 'pending',
+                isRecurring: false,
+            });
+
+            const initialTransactions = [
+                { id: 1, description: 'Pensão de Arthur', amount: 280, type: 'income', category: 'salary', date: '2026-08-30', status: 'paid', isRecurring: true },
+                { id: 2, description: 'AMIL - PLANO', amount: 300, type: 'expense', category: 'health', date: '2026-08-30', status: 'pending', isRecurring: true },
+                { id: 3, description: 'HAPVIDA - EU E...', amount: 572.19, type: 'expense', category: 'health', date: '2026-08-30', status: 'pending', isRecurring: true },
+                { id: 4, description: 'SEGURO DO CA...', amount: 264.29, type: 'expense', category: 'insurance', date: '2026-08-20', status: 'overdue', isRecurring: false },
+                { id: 5, description: 'PROTESTO MEI', amount: 346.37, type: 'expense', category: 'taxes', date: '2026-08-19', status: 'paid', isRecurring: false },
+                { id: 6, description: 'SPOTIFY DUO', amount: 32, type: 'expense', category: 'entertainment', date: '2026-08-16', status: 'overdue', isRecurring: true },
+                { id: 7, description: 'IPVA', amount: 200, type: 'expense', category: 'vehicle', date: '2026-08-15', status: 'overdue', isRecurring: false },
+                { id: 8, description: 'CONSORCIO P...', amount: 350, type: 'expense', category: 'other', date: '2026-08-15', status: 'overdue', isRecurring: false },
+                { id: 9, description: 'CARTÃO NU BANK', amount: 0.01, type: 'expense', category: 'finance', date: '2026-08-14', status: 'paid', isRecurring: true },
+                { id: 10, description: 'SANTANDER', amount: 1800, type: 'expense', category: 'finance', date: '2026-08-14', status: 'paid', isRecurring: true },
+                { id: 11, description: 'CONTA DE ENER...', amount: 629.37, type: 'expense', category: 'utilities', date: '2026-08-12', status: 'paid', isRecurring: true },
+                { id: 12, description: 'CARTÃO C&A', amount: 0.01, type: 'expense', category: 'finance', date: '2026-08-12', status: 'paid', isRecurring: true },
+                { id: 13, description: 'Contadora - Ra...', amount: 300, type: 'expense', category: 'professional', date: '2026-08-12', status: 'paid', isRecurring: true },
+                { id: 14, description: 'ENERGIA CASA D...', amount: 50.22, type: 'expense', category: 'utilities', date: '2026-08-12', status: 'paid', isRecurring: true },
+                { id: 15, description: 'CARTÃO BANCO...', amount: 523.78, type: 'expense', category: 'finance', date: '2026-08-12', status: 'paid', isRecurring: false },
+                { id: 16, description: 'SEGURO DE VID...', amount: 400.72, type: 'expense', category: 'insurance', date: '2026-08-11', status: 'overdue', isRecurring: true },
+                { id: 17, description: 'CELULAR CLARO', amount: 100, type: 'expense', category: 'telecom', date: '2026-08-11', status: 'overdue', isRecurring: true },
+                { id: 18, description: 'ESCOLA DE AR...', amount: 700, type: 'expense', category: 'education', date: '2026-08-10', status: 'overdue', isRecurring: false },
+                { id: 19, description: 'CURSINHO DE...', amount: 250, type: 'expense', category: 'education', date: '2026-08-10', status: 'paid', isRecurring: true },
+                { id: 20, description: 'CARTÃO MER...', amount: 2584.70, type: 'expense', category: 'finance', date: '2026-08-10', status: 'paid', isRecurring: false },
+                { id: 21, description: 'SALÁRIO 02', amount: 13635, type: 'income', category: 'salary', date: '2026-08-10', status: 'paid', isRecurring: true },
+                { id: 22, description: 'CARTÃO RENNER', amount: 322.74, type: 'expense', category: 'shopping', date: '2026-08-10', status: 'paid', isRecurring: false },
+                { id: 23, description: 'CARTÃO SANT...', amount: 1128.87, type: 'expense', category: 'shopping', date: '2026-08-10', status: 'paid', isRecurring: false },
+                { id: 24, description: 'CARTÃO NOVO AT...', amount: 0.01, type: 'expense', category: 'finance', date: '2026-08-10', status: 'paid', isRecurring: true },
+                { id: 25, description: 'FEIRA MENSAL', amount: 1365.56, type: 'expense', category: 'groceries', date: '2026-08-10', status: 'cancelled', isRecurring: true },
+                { id: 26, description: 'MOCINHA', amount: 150, type: 'expense', category: 'pets', date: '2026-08-06', status: 'overdue', isRecurring: false },
+                { id: 27, description: 'ESTACIONAMEN...', amount: 79.80, type: 'expense', category: 'transport', date: '2026-08-05', status: 'paid', isRecurring: true },
+                { id: 28, description: 'FACULDADE', amount: 600, type: 'expense', category: 'education', date: '2026-08-05', status: 'paid', isRecurring: true },
+                { id: 29, description: 'CARTÃO ITAU', amount: 0.83, type: 'expense', category: 'finance', date: '2026-08-05', status: 'cancelled', isRecurring: false },
+                { id: 30, description: 'SALÁRIO 01', amount: 2932.01, type: 'income', category: 'salary', date: '2026-08-05', status: 'paid', isRecurring: true },
+                { id: 31, description: 'CELULART DE V...', amount: 581, type: 'income', category: 'other', date: '2026-08-02', status: 'overdue', isRecurring: false },
+                { id: 32, description: 'ALUGUEL', amount: 900, type: 'expense', category: 'housing', date: '2026-08-01', status: 'paid', isRecurring: true }
+            ];
+
+            useEffect(() => {
+                const saved = localStorage.getItem('financeflow_transactions');
+                if (saved) {
+                    setTransactions(JSON.parse(saved));
+                } else {
+                    setTransactions(initialTransactions);
+                    localStorage.setItem('financeflow_transactions', JSON.stringify(initialTransactions));
+                }
+                
+                // Aplicar modo dark/light ao body
+                document.body.className = isDarkMode ? 'dark-mode' : 'light-mode';
+            }, []);
+
+            useEffect(() => {
+                localStorage.setItem('financeflow_transactions', JSON.stringify(transactions));
+            }, [transactions]);
+
+            useEffect(() => {
+                document.body.className = isDarkMode ? 'dark-mode' : 'light-mode';
+            }, [isDarkMode]);
+
+            const handleAddTransaction = (e) => {
+                e.preventDefault();
+                const newTransaction = {
+                    id: Date.now(),
+                    ...formData,
+                    amount: parseFloat(formData.amount)
+                };
+                setTransactions([newTransaction, ...transactions]);
+                setFormData({
+                    description: '',
+                    amount: '',
+                    type: 'expense',
+                    category: 'other',
+                    date: new Date().toISOString().split('T')[0],
+                    status: 'pending',
+                    isRecurring: false,
+                });
+                setShowForm(false);
+            };
+
+            const handleDeleteTransaction = (id) => {
+                setTransactions(transactions.filter(t => t.id !== id));
+            };
+
+            const categoryLabels = {
+                salary: 'Salário',
+                health: 'Saúde',
+                insurance: 'Seguros',
+                taxes: 'Impostos',
+                entertainment: 'Entretenimento',
+                vehicle: 'Veículo',
+                finance: 'Finanças',
+                utilities: 'Utilidades',
+                professional: 'Profissional',
+                telecom: 'Telecomunicações',
+                education: 'Educação',
+                shopping: 'Compras',
+                groceries: 'Supermercado',
+                pets: 'Pets',
+                transport: 'Transporte',
+                housing: 'Moradia',
+                other: 'Outros'
+            };
+
+            const getCategoryColor = (category) => {
+                const colors = {
+                    salary: '#10b981',
+                    health: '#ef4444',
+                    insurance: '#f97316',
+                    taxes: '#a855f7',
+                    entertainment: '#ec4899',
+                    vehicle: '#3b82f6',
+                    finance: '#eab308',
+                    utilities: '#06b6d4',
+                    professional: '#6366f1',
+                    telecom: '#8b5cf6',
+                    education: '#14b8a6',
+                    shopping: '#f43f5e',
+                    groceries: '#f59e0b',
+                    pets: '#d946ef',
+                    transport: '#0ea5e9',
+                    housing: '#64748b',
+                    other: '#6b7280'
+                };
+                return colors[category] || colors.other;
+            };
+
+            const filteredTransactions = transactions.filter(t => {
+                if (filter === 'income') return t.type === 'income';
+                if (filter === 'expense') return t.type === 'expense';
+                if (filter === 'overdue') return t.status === 'overdue';
+                if (filter === 'pending') return t.status === 'pending';
+                return true;
+            });
+
+            const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+            const totalExpense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+            const balance = totalIncome - totalExpense;
+
+            const expenseByCategory = {};
+            transactions.filter(t => t.type === 'expense').forEach(t => {
+                if (!expenseByCategory[t.category]) expenseByCategory[t.category] = 0;
+                expenseByCategory[t.category] += t.amount;
+            });
+
+            const topExpenses = Object.entries(expenseByCategory)
+                .sort(([, a], [, b]) => b - a)
+                .slice(0, 5);
+
+            const recurring = transactions.filter(t => t.isRecurring);
+            const recurringExpense = recurring.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+
+            const overdue = transactions.filter(t => t.status === 'overdue').reduce((sum, t) => sum + (t.type === 'expense' ? t.amount : -t.amount), 0);
+
+            const formatCurrency = (value) => {
+                return new Intl.NumberFormat('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL'
+                }).format(value);
+            };
+
+            const generateReport = () => {
+                let content = `RELATÓRIO FINANCEIRO PESSOAL\n`;
+                content += `Gerado em: ${new Date().toLocaleDateString('pt-BR')}\n\n`;
+                content += `RESUMO GERAL\n`;
+                content += `Total de Receitas: ${formatCurrency(totalIncome)}\n`;
+                content += `Total de Despesas: ${formatCurrency(totalExpense)}\n`;
+                content += `Saldo: ${formatCurrency(balance)}\n`;
+                content += `Despesas Recorrentes: ${formatCurrency(recurringExpense)}\n`;
+                content += `Contas em Atraso: ${formatCurrency(overdue)}\n\n`;
+                
+                content += `DESPESAS POR CATEGORIA\n`;
+                Object.entries(expenseByCategory).forEach(([cat, value]) => {
+                    content += `${categoryLabels[cat]}: ${formatCurrency(value)}\n`;
+                });
+                
+                content += `\n\nTODAS AS TRANSAÇÕES\n`;
+                filteredTransactions.forEach(t => {
+                    content += `${t.date} | ${t.description} | ${t.type === 'income' ? '+' : '-'}${formatCurrency(t.amount)} | ${t.status}\n`;
+                });
+
+                const element = document.createElement('a');
+                element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(content));
+                element.setAttribute('download', `relatorio_financeflow_${new Date().toISOString().split('T')[0]}.txt`);
+                element.style.display = 'none';
+                document.body.appendChild(element);
+                element.click();
+                document.body.removeChild(element);
+            };
+
+            return (
+                <div className="min-h-screen">
+                    {/* Header */}
+                    <header className="header border-b sticky top-0 z-50 glass">
+                        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 btn-gradient rounded-lg flex items-center justify-center">
+                                    <span style={{ fontSize: '1.5rem' }}>💰</span>
+                                </div>
+                                <h1 className="text-2xl font-bold gradient-text">FinanceFlow</h1>
+                            </div>
+                            
+                            <div className="flex items-center gap-4">
+                                <button
+                                    onClick={() => setIsDarkMode(!isDarkMode)}
+                                    className="p-2 rounded-lg card hover:opacity-80 transition-opacity"
+                                    title={isDarkMode ? 'Modo claro' : 'Modo escuro'}
+                                >
+                                    {isDarkMode ? '☀️' : '🌙'}
+                                </button>
+                                <button
+                                    onClick={generateReport}
+                                    className="p-2 rounded-lg btn-gradient transition-all flex items-center gap-2"
+                                    title="Baixar relatório"
+                                >
+                                    <span>📊</span>
+                                    <span className="hidden sm:inline text-sm font-bold">Relatório</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Tabs */}
+                        <div className="border-t border-slate-700 px-4 flex gap-2 overflow-x-auto">
+                            {[
+                                { id: 'dashboard', label: 'Dashboard', icon: '📊' },
+                                { id: 'transactions', label: 'Transações', icon: '💳' },
+                                { id: 'analysis', label: 'Análises', icon: '📈' },
+                                { id: 'report', label: 'Relatório', icon: '📋' }
+                            ].map(tab => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={`px-4 py-3 border-b-2 transition-all font-medium text-sm flex items-center gap-2 whitespace-nowrap ${
+                                        activeTab === tab.id ? 'tab-active' : 'tab-inactive'
+                                    }`}
+                                >
+                                    {tab.icon} {tab.label}
+                                </button>
+                            ))}
+                        </div>
+                    </header>
+
+                    <main className="max-w-7xl mx-auto px-4 py-8">
+                        {/* Dashboard Tab */}
+                        {activeTab === 'dashboard' && (
+                            <div className="space-y-8">
+                                {/* KPIs */}
+                                <div className="grid-responsive gap-4">
+                                    {/* Total Income */}
+                                    <div className="card p-6 rounded-xl hover:opacity-90 transition-opacity">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <p className="text-slate-400">Receitas</p>
+                                            <span>📈</span>
+                                        </div>
+                                        <p className="text-3xl font-bold text-green-500">{formatCurrency(totalIncome)}</p>
+                                        <p className="text-xs text-slate-500 mt-2">+{transactions.filter(t => t.type === 'income').length} transações</p>
+                                    </div>
+
+                                    {/* Total Expense */}
+                                    <div className="card p-6 rounded-xl hover:opacity-90 transition-opacity">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <p className="text-slate-400">Despesas</p>
+                                            <span>📉</span>
+                                        </div>
+                                        <p className="text-3xl font-bold text-red-500">{formatCurrency(totalExpense)}</p>
+                                        <p className="text-xs text-slate-500 mt-2">+{transactions.filter(t => t.type === 'expense').length} transações</p>
+                                    </div>
+
+                                    {/* Balance */}
+                                    <div className="card p-6 rounded-xl hover:opacity-90 transition-opacity">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <p className="text-slate-400">Saldo</p>
+                                            <span>💎</span>
+                                        </div>
+                                        <p className={`text-3xl font-bold ${balance >= 0 ? 'text-yellow-500' : 'text-red-500'}`}>{formatCurrency(balance)}</p>
+                                        <p className="text-xs text-slate-500 mt-2">{balance >= 0 ? 'Saudável' : 'Déficit'}</p>
+                                    </div>
+
+                                    {/* Overdue */}
+                                    <div className="card p-6 rounded-xl hover:opacity-90 transition-opacity">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <p className="text-slate-400">Em Atraso</p>
+                                            <span>⚠️</span>
+                                        </div>
+                                        <p className="text-3xl font-bold text-orange-500">{formatCurrency(overdue)}</p>
+                                        <p className="text-xs text-slate-500 mt-2">{transactions.filter(t => t.status === 'overdue').length} contas</p>
+                                    </div>
+                                </div>
+
+                                {/* Charts */}
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                    {/* Top Categories */}
+                                    <div className="card p-6 rounded-xl">
+                                        <h3 className="text-lg font-bold mb-4">🥧 Maiores Despesas</h3>
+                                        <div className="space-y-3">
+                                            {topExpenses.map(([category, amount]) => (
+                                                <div key={category}>
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <span className="text-slate-300">{categoryLabels[category]}</span>
+                                                        <span className="font-bold text-yellow-500">{formatCurrency(amount)}</span>
+                                                    </div>
+                                                    <div className="progress-bar h-2 rounded-full overflow-hidden">
+                                                        <div 
+                                                            style={{ 
+                                                                width: `${(amount / Math.max(...topExpenses.map(([, a]) => a))) * 100}%`,
+                                                                backgroundColor: getCategoryColor(category),
+                                                                height: '100%',
+                                                                borderRadius: '9999px'
+                                                            }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Recurring */}
+                                    <div className="card p-6 rounded-xl">
+                                        <h3 className="text-lg font-bold mb-4">♻️ Despesas Recorrentes</h3>
+                                        <div className="bg-slate-800 p-4 rounded-lg mb-4">
+                                            <p className="text-slate-400">Despesas Fixas Mensais</p>
+                                            <p className="text-3xl font-bold text-yellow-500">{formatCurrency(recurringExpense)}</p>
+                                        </div>
+                                        <p className="text-sm text-slate-400">
+                                            {recurring.filter(t => t.type === 'expense').length} contas recorrentes
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Quick Add */}
+                                {!showForm && (
+                                    <button
+                                        onClick={() => setShowForm(true)}
+                                        className="w-full py-4 rounded-xl btn-gradient font-bold text-lg transition-all shadow-lg"
+                                    >
+                                        ➕ Adicionar Nova Transação
+                                    </button>
+                                )}
+
+                                {/* Add Form */}
+                                {showForm && (
+                                    <form onSubmit={handleAddTransaction} className="card p-6 rounded-xl space-y-4">
+                                        <h3 className="text-lg font-bold">Nova Transação</h3>
+                                        
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <input
+                                                type="text"
+                                                placeholder="Descrição"
+                                                value={formData.description}
+                                                onChange={(e) => setFormData({...formData, description: e.target.value})}
+                                                className="input-field px-4 py-2 rounded-lg border"
+                                                required
+                                            />
+                                            <input
+                                                type="number"
+                                                placeholder="Valor"
+                                                value={formData.amount}
+                                                onChange={(e) => setFormData({...formData, amount: e.target.value})}
+                                                className="input-field px-4 py-2 rounded-lg border"
+                                                step="0.01"
+                                                required
+                                            />
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <select
+                                                value={formData.type}
+                                                onChange={(e) => setFormData({...formData, type: e.target.value})}
+                                                className="input-field px-4 py-2 rounded-lg border"
+                                            >
+                                                <option value="expense">Despesa</option>
+                                                <option value="income">Receita</option>
+                                            </select>
+
+                                            <select
+                                                value={formData.category}
+                                                onChange={(e) => setFormData({...formData, category: e.target.value})}
+                                                className="input-field px-4 py-2 rounded-lg border"
+                                            >
+                                                {Object.entries(categoryLabels).map(([key, label]) => (
+                                                    <option key={key} value={key}>{label}</option>
+                                                ))}
+                                            </select>
+
+                                            <input
+                                                type="date"
+                                                value={formData.date}
+                                                onChange={(e) => setFormData({...formData, date: e.target.value})}
+                                                className="input-field px-4 py-2 rounded-lg border"
+                                            />
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <select
+                                                value={formData.status}
+                                                onChange={(e) => setFormData({...formData, status: e.target.value})}
+                                                className="input-field px-4 py-2 rounded-lg border"
+                                            >
+                                                <option value="pending">Pendente</option>
+                                                <option value="paid">Pago</option>
+                                                <option value="overdue">Atrasado</option>
+                                                <option value="cancelled">Cancelado</option>
+                                            </select>
+
+                                            <label className="flex items-center gap-2 cursor-pointer text-slate-300">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={formData.isRecurring}
+                                                    onChange={(e) => setFormData({...formData, isRecurring: e.target.checked})}
+                                                    className="w-5 h-5 rounded"
+                                                />
+                                                <span>Recorrente</span>
+                                            </label>
+                                        </div>
+
+                                        <div className="flex gap-2">
+                                            <button
+                                                type="submit"
+                                                className="flex-1 py-2 btn-gradient font-bold rounded-lg transition-all"
+                                            >
+                                                Salvar
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowForm(false)}
+                                                className="flex-1 py-2 card border rounded-lg font-bold transition-all hover:opacity-80"
+                                            >
+                                                Cancelar
+                                            </button>
+                                        </div>
+                                    </form>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Transactions Tab */}
+                        {activeTab === 'transactions' && (
+                            <div className="space-y-4">
+                                <div className="flex flex-wrap gap-2">
+                                    {['all', 'income', 'expense', 'pending', 'overdue'].map(f => (
+                                        <button
+                                            key={f}
+                                            onClick={() => setFilter(f)}
+                                            className={`px-4 py-2 rounded-lg border transition-all font-medium ${
+                                                filter === f
+                                                    ? 'btn-gradient'
+                                                    : 'card'
+                                            }`}
+                                        >
+                                            {f === 'all' ? 'Todas' : f === 'income' ? 'Receitas' : f === 'expense' ? 'Despesas' : f === 'pending' ? 'Pendentes' : 'Atrasadas'}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                <div className="space-y-2">
+                                    {filteredTransactions.map(transaction => (
+                                        <div
+                                            key={transaction.id}
+                                            className="card p-4 rounded-lg flex items-center justify-between hover:scale-105 transition-transform"
+                                        >
+                                            <div className="flex items-center gap-4 flex-1">
+                                                <div 
+                                                    style={{
+                                                        width: '48px',
+                                                        height: '48px',
+                                                        borderRadius: '8px',
+                                                        backgroundColor: getCategoryColor(transaction.category),
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        color: 'white',
+                                                        fontWeight: 'bold',
+                                                        fontSize: '12px'
+                                                    }}
+                                                >
+                                                    {categoryLabels[transaction.category].substring(0, 2).toUpperCase()}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <p className="font-bold">{transaction.description}</p>
+                                                    <div className="flex items-center gap-3 mt-1">
+                                                        <span className={`text-xs px-2 py-1 rounded-full ${
+                                                            transaction.status === 'paid' ? 'status-paid' :
+                                                            transaction.status === 'pending' ? 'status-pending' :
+                                                            transaction.status === 'overdue' ? 'status-overdue' :
+                                                            'status-cancelled'
+                                                        }`}>
+                                                            {transaction.status === 'paid' ? '✓ Pago' :
+                                                             transaction.status === 'pending' ? '⏳ Pendente' :
+                                                             transaction.status === 'overdue' ? '⚠ Atrasado' :
+                                                             '✕ Cancelado'}
+                                                        </span>
+                                                        <span className="text-xs text-slate-500">
+                                                            {new Date(transaction.date).toLocaleDateString('pt-BR')}
+                                                        </span>
+                                                        {transaction.isRecurring && <span className="text-xs bg-blue-500/20 text-blue-500 px-2 py-1 rounded-full">♻️ Recorrente</span>}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="flex items-center gap-4">
+                                                <p className={`text-xl font-bold ${transaction.type === 'income' ? 'text-green-500' : 'text-red-500'}`}>
+                                                    {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                                                </p>
+                                                <button
+                                                    onClick={() => handleDeleteTransaction(transaction.id)}
+                                                    className="p-2 rounded-lg hover:bg-red-500/20 text-red-500 transition-all"
+                                                >
+                                                    🗑️
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Analysis Tab */}
+                        {activeTab === 'analysis' && (
+                            <div className="space-y-6">
+                                <div className="card p-6 rounded-xl">
+                                    <h3 className="text-lg font-bold mb-4">📊 Análise Detalhada</h3>
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div>
+                                            <h4 className="font-bold mb-3 text-yellow-500">Divisão de Despesas</h4>
+                                            <div className="space-y-2">
+                                                {Object.entries(expenseByCategory).map(([cat, value]) => {
+                                                    const percentage = (value / totalExpense) * 100;
+                                                    return (
+                                                        <div key={cat}>
+                                                            <div className="flex justify-between mb-1">
+                                                                <span className="text-slate-300">{categoryLabels[cat]}</span>
+                                                                <span className="font-bold">{percentage.toFixed(1)}%</span>
+                                                            </div>
+                                                            <div className="progress-bar h-2 rounded-full overflow-hidden">
+                                                                <div 
+                                                                    style={{
+                                                                        width: `${percentage}%`,
+                                                                        backgroundColor: getCategoryColor(cat),
+                                                                        height: '100%',
+                                                                        borderRadius: '9999px'
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <h4 className="font-bold mb-3 text-yellow-500">🎯 Recomendações</h4>
+                                            <ul className="space-y-2 text-sm">
+                                                {recurringExpense > totalIncome * 0.6 && (
+                                                    <li className="flex gap-2">
+                                                        <span>⚠️</span>
+                                                        <span>Despesas recorrentes ({formatCurrency(recurringExpense)}) ultrapassam 60% da renda!</span>
+                                                    </li>
+                                                )}
+                                                {expenseByCategory['shopping'] > totalExpense * 0.2 && (
+                                                    <li className="flex gap-2">
+                                                        <span>💡</span>
+                                                        <span>Compras são {((expenseByCategory['shopping'] / totalExpense) * 100).toFixed(1)}% do orçamento.</span>
+                                                    </li>
+                                                )}
+                                                {overdue > 0 && (
+                                                    <li className="flex gap-2">
+                                                        <span>⚠️</span>
+                                                        <span>{formatCurrency(overdue)} em contas atrasadas. Priorize!</span>
+                                                    </li>
+                                                )}
+                                                {balance > 0 && (
+                                                    <li className="flex gap-2">
+                                                        <span>✅</span>
+                                                        <span>Você tem {formatCurrency(balance)} de margem. Considere poupar!</span>
+                                                    </li>
+                                                )}
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Report Tab */}
+                        {activeTab === 'report' && (
+                            <div className="card p-8 rounded-xl space-y-6">
+                                <div className="text-center mb-8">
+                                    <h2 className="text-3xl font-bold mb-2">📋 Relatório Financeiro</h2>
+                                    <p className="text-slate-400">Período: Completo</p>
+                                </div>
+
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pb-8 border-b border-slate-700">
+                                    <div className="text-center">
+                                        <p className="text-slate-400">Total Receitas</p>
+                                        <p className="text-2xl font-bold text-green-500">{formatCurrency(totalIncome)}</p>
+                                    </div>
+                                    <div className="text-center">
+                                        <p className="text-slate-400">Total Despesas</p>
+                                        <p className="text-2xl font-bold text-red-500">{formatCurrency(totalExpense)}</p>
+                                    </div>
+                                    <div className="text-center">
+                                        <p className="text-slate-400">Saldo Final</p>
+                                        <p className={`text-2xl font-bold ${balance >= 0 ? 'text-green-500' : 'text-red-500'}`}>{formatCurrency(balance)}</p>
+                                    </div>
+                                    <div className="text-center">
+                                        <p className="text-slate-400">Transações</p>
+                                        <p className="text-2xl font-bold text-yellow-500">{transactions.length}</p>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <h3 className="text-lg font-bold mb-4">Distribuição de Despesas</h3>
+                                    <div className="space-y-3">
+                                        {Object.entries(expenseByCategory).map(([cat, amount]) => (
+                                            <div key={cat}>
+                                                <div className="flex justify-between mb-1">
+                                                    <span>{categoryLabels[cat]}</span>
+                                                    <span className="font-bold">{formatCurrency(amount)}</span>
+                                                </div>
+                                                <div className="progress-bar h-3 rounded-full overflow-hidden">
+                                                    <div
+                                                        style={{
+                                                            width: `${(amount / totalExpense) * 100}%`,
+                                                            backgroundColor: getCategoryColor(cat),
+                                                            height: '100%',
+                                                            borderRadius: '9999px'
+                                                        }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={generateReport}
+                                    className="w-full py-3 btn-gradient font-bold rounded-lg transition-all"
+                                >
+                                    ⬇️ Baixar Relatório em Texto
+                                </button>
+                            </div>
+                        )}
+                    </main>
+                </div>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<FinancialDashboard />);
+    </script>
+</body>
+</html>
