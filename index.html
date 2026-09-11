@@ -184,6 +184,32 @@ tbody tr:last-child td{border-bottom:none}
 .inst-cell .im{font-size:.68em;color:var(--txt3);text-transform:uppercase;font-weight:700}
 .inst-cell .iv{font-size:.9em;font-weight:800;margin-top:2px}
 
+/* --- Agenda --- */
+.ag-layout{display:grid;grid-template-columns:1fr 280px;gap:20px}
+.ag-cal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.ag-cal-head h2{font-size:1.1em;margin:0}
+.ag-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.ag-dow-head{text-align:center;font-size:.72em;font-weight:800;color:var(--txt3);text-transform:uppercase;padding-bottom:4px}
+.ag-day{min-height:84px;background:var(--bg2);border:1px solid var(--bd);border-radius:10px;padding:6px;font-size:.8em;cursor:pointer;transition:.15s;display:flex;flex-direction:column;gap:3px}
+.ag-day.other{background:transparent;border-color:transparent;cursor:default}
+.ag-day:hover{border-color:var(--cyan)}
+.ag-day.today{border-color:var(--cyan);box-shadow:0 0 0 1px var(--cyan) inset}
+.ag-day.drop-ok{border-color:var(--green);background:rgba(34,224,122,.08)}
+.ag-n{font-weight:700}
+.ag-dots{display:flex;gap:3px;flex-wrap:wrap}
+.ag-dot{width:6px;height:6px;border-radius:50%;background:var(--orange)}
+.ag-chip{font-size:.68em;padding:2px 6px;border-radius:6px;background:rgba(168,85,247,.18);color:var(--purple);font-weight:700;cursor:grab;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ag-chip.done{background:rgba(34,224,122,.15);color:var(--green);text-decoration:line-through}
+.ag-chip.dragging{opacity:.4}
+.ag-side{display:flex;flex-direction:column;gap:14px}
+.ag-dow{padding:7px 12px;border-radius:8px;border:1px solid var(--bd);background:var(--bg2);color:var(--txt3);font-family:inherit;font-weight:700;font-size:.82em;cursor:pointer}
+.ag-dow.on{background:rgba(168,85,247,.18);border-color:var(--purple);color:var(--purple)}
+.ag-item{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:10px 0;border-top:1px solid var(--bd)}
+.ag-item:first-child{border-top:none}
+.ag-meta{font-size:.78em;color:var(--txt3);display:block;margin-top:2px}
+.ag-obs{font-size:.78em;color:var(--txt3);font-style:italic;margin-top:4px}
+@media (max-width: 900px){ .ag-layout{grid-template-columns:1fr} }
+
 /* --- Dashboard: arrastar e ocultar --- */
 .blk-head{display:flex;align-items:center;gap:10px}
 .blk-head h2{flex:0}
@@ -343,6 +369,7 @@ tbody tr:last-child td{border-bottom:none}
       <li><a data-page="cards" onclick="go(this)">🏦 Cartões</a></li>
       <li><a data-page="subscriptions" onclick="go(this)">📺 Assinaturas</a></li>
       <li><a data-page="loans" onclick="go(this)">🤝 Empréstimos</a></li>
+      <li><a data-page="agenda" onclick="go(this)">🗓️ Agenda</a></li>
       <li><a data-page="monthly" onclick="go(this)">📅 Mensal</a></li>
       <li><a data-page="forecast6" onclick="go(this)">🔮 Projeção 6 meses</a></li>
       <li><a data-page="goals" onclick="go(this)">🎯 Objetivos</a></li>
@@ -378,6 +405,7 @@ tbody tr:last-child td{border-bottom:none}
     <!-- DASHBOARD -->
     <section class="page active" id="page-dashboard">
       <div id="dashSubAlerts"></div>
+      <div id="dashAgendaAlerts"></div>
       <div id="dashboardGrid">
       <div class="blk" data-widget="resumo" draggable="false">
         <div class="blk-head">
@@ -684,6 +712,78 @@ tbody tr:last-child td{border-bottom:none}
       <div id="loansList"></div>
     </section>
 
+    <!-- AGENDA -->
+    <section class="page" id="page-agenda">
+      <div id="agendaAlerts"></div>
+
+      <div class="blk">
+        <div class="blk-head"><span class="ico">➕</span><h2>Novo compromisso</h2></div>
+        <div class="frow">
+          <div class="ig"><label>Nome</label><input type="text" id="agName" placeholder="Ex: Dentista, Reunião, Academia"></div>
+          <div class="ig"><label>Data</label><input type="date" id="agDate"></div>
+        </div>
+        <div class="frow">
+          <div class="ig"><label>Hora (opcional)</label><input type="time" id="agTime"></div>
+          <div class="ig"><label>Avisar quantos dias antes</label><input type="number" id="agRemind" min="0" max="60" value="1"></div>
+        </div>
+        <div class="frow">
+          <div class="ig">
+            <label>Repetição</label>
+            <select id="agRecur" onchange="toggleRecurExtra()">
+              <option value="none">Não repete</option>
+              <option value="daily">Diariamente</option>
+              <option value="weekly">Semanalmente</option>
+              <option value="monthly">Mensalmente (mesmo dia)</option>
+            </select>
+          </div>
+          <div class="ig"><label>Observação</label><input type="text" id="agObs" placeholder="Opcional" maxlength="300"></div>
+        </div>
+        <div class="ig" id="agRecurExtra" style="display:none">
+          <label>Dias da semana</label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button type="button" class="ag-dow" data-dow="0" onclick="toggleDow(this)">Dom</button>
+            <button type="button" class="ag-dow" data-dow="1" onclick="toggleDow(this)">Seg</button>
+            <button type="button" class="ag-dow" data-dow="2" onclick="toggleDow(this)">Ter</button>
+            <button type="button" class="ag-dow" data-dow="3" onclick="toggleDow(this)">Qua</button>
+            <button type="button" class="ag-dow" data-dow="4" onclick="toggleDow(this)">Qui</button>
+            <button type="button" class="ag-dow" data-dow="5" onclick="toggleDow(this)">Sex</button>
+            <button type="button" class="ag-dow" data-dow="6" onclick="toggleDow(this)">Sáb</button>
+          </div>
+        </div>
+        <div class="brow">
+          <button class="bt pri" onclick="addCompromisso()">Adicionar</button>
+          <button class="bt sec" onclick="clearForm('ag')">Limpar</button>
+        </div>
+      </div>
+
+      <div class="blk">
+        <div class="ag-layout">
+          <div class="ag-cal-wrap">
+            <div class="ag-cal-head">
+              <div class="nav-arrows"><button onclick="shiftMonth(-1)">‹</button><button onclick="shiftMonth(1)">›</button></div>
+              <h2 id="agendaMesLabel">—</h2>
+              <div style="width:70px"></div>
+            </div>
+            <div class="ag-grid" id="agendaGrid"></div>
+            <div class="legend">
+              <span><div class="dot fin" style="background:var(--orange)"></div> Vencimento financeiro</span>
+              <span><div class="dot" style="background:var(--purple)"></div> Compromisso pessoal</span>
+              <span style="font-style:italic;color:var(--txt3)">→ arraste um compromisso avulso para outro dia para remarcar</span>
+            </div>
+          </div>
+          <div class="ag-side">
+            <div class="card"><h3>Hoje</h3><div id="agendaHoje"></div></div>
+            <div class="card"><h3>Próximos 7 dias</h3><div id="agendaProximos"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="blk">
+        <div class="blk-head"><span class="ico">📋</span><h2>Compromissos deste mês</h2></div>
+        <div id="agendaLista"></div>
+      </div>
+    </section>
+
     <!-- MENSAL -->
     <section class="page" id="page-monthly">
       <div class="form-card">
@@ -864,7 +964,7 @@ tbody tr:last-child td{border-bottom:none}
 <script>
 /* ============ ESTADO ============ */
 const STORAGE_KEY = 'financeflow_v3';
-let state = { user:null, expenses:[], revenue:[], cards:[], goals:[], subscriptions:[], loans:[], seq:1, ledger:{}, month:null, dashPrefs:{layout:[],hiddenWidgets:[],hiddenCharts:[]} };
+let state = { user:null, expenses:[], revenue:[], cards:[], goals:[], subscriptions:[], loans:[], compromissos:[], seq:1, ledger:{}, month:null, dashPrefs:{layout:[],hiddenWidgets:[],hiddenCharts:[]} };
 let filterExpense = 'todas';
 let filterRevenue = 'todas';
 function setFilterExpense(v,btn){ filterExpense = v; document.querySelectorAll('#filterExpense button').forEach(b=>b.classList.remove('on')); if(btn) btn.classList.add('on'); renderExpenses(); }
@@ -1058,7 +1158,7 @@ async function flush(){
 /* leitura completa do banco */
 async function pullAll(){
   badge('wait','carregando...');
-  const [ex, rv, cd, gl, en, sub, ln, lni, dprefs] = await Promise.all([
+  const [ex, rv, cd, gl, en, sub, ln, lni, dprefs, comp] = await Promise.all([
     sb.from('expenses').select('*'),
     sb.from('revenues').select('*'),
     sb.from('cards').select('*'),
@@ -1067,7 +1167,8 @@ async function pullAll(){
     sb.from('subscriptions').select('*'),
     sb.from('loans').select('*'),
     sb.from('loan_installments').select('*'),
-    sb.from('dashboard_prefs').select('*').then(r=>r).catch(e=>({data:null,error:e}))
+    sb.from('dashboard_prefs').select('*').then(r=>r).catch(e=>({data:null,error:e})),
+    sb.from('compromissos').select('*').then(r=>r).catch(e=>({data:null,error:e}))
   ]);
   const erro = ex.error || rv.error || cd.error || gl.error || en.error || sub.error || ln.error || lni.error;
   if(erro){ badge('err','erro ao carregar'); throw erro; }
@@ -1079,6 +1180,14 @@ async function pullAll(){
     hiddenWidgets: (dp && dp.hidden_widgets) || [],
     hiddenCharts: (dp && dp.hidden_charts) || []
   };
+
+  /* agenda: também opcional, nunca bloqueia o login (tabela pode ainda não existir) */
+  state.compromissos = (comp && !comp.error && comp.data || []).map(r=>({
+    id:r.id, name:r.name, date:r.date, time:r.time,
+    recurrenceType:r.recurrence_type||'none', recurrenceDays:r.recurrence_days||[],
+    remindDaysBefore:num(r.remind_days_before), status:r.status==='concluido'?'concluido':'pendente',
+    obs:r.obs||''
+  }));
 
   state.expenses = (ex.data||[]).map(r=>({ id:r.id, name:r.name, dueDay:r.due_day, category:r.category, value:0 }));
   state.revenue  = (rv.data||[]).map(r=>({ id:r.id, name:r.name, dueDay:r.due_day, type:r.type, value:0 }));
@@ -1185,7 +1294,7 @@ async function doLogout(){
   sbUser = null;
   Object.values(charts).forEach(c=>{ if(c) c.destroy(); });
   charts = {};
-  state = { user:null, expenses:[], revenue:[], cards:[], goals:[], subscriptions:[], loans:[], seq:1, ledger:{}, month:null, dashPrefs:{layout:[],hiddenWidgets:[],hiddenCharts:[]} };
+  state = { user:null, expenses:[], revenue:[], cards:[], goals:[], subscriptions:[], loans:[], compromissos:[], seq:1, ledger:{}, month:null, dashPrefs:{layout:[],hiddenWidgets:[],hiddenCharts:[]} };
   document.getElementById('app').style.display='none';
   document.getElementById('loginWrap').style.display='flex';
   document.getElementById('authEmail').value='';
@@ -1299,6 +1408,289 @@ function renderAll(){
   syncMonthInputs();
   renderExpenses(); renderRevenue(); renderCards(); renderGoals();
   renderMonthly(); renderConfig(); renderTips(); refreshDashboard();
+  renderAgenda();
+}
+
+/* ============ AGENDA ============ */
+const DOW_LABEL = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+
+function pad2(n){ return String(n).padStart(2,'0'); }
+function isoDate(ano, mesIdx, dia){ return `${ano}-${pad2(mesIdx+1)}-${pad2(dia)}`; }
+
+/* ocorrências (YYYY-MM-DD) de um compromisso dentro de uma janela [inicioISO, fimISO] */
+function ocorrenciasCompromisso(c, inicioISO, fimISO){
+  const out = [];
+  const inicio = new Date(inicioISO+'T00:00:00');
+  const fim = new Date(fimISO+'T00:00:00');
+  const dataBase = new Date(c.date+'T00:00:00');
+  if(dataBase > fim) return out;
+
+  if(c.recurrenceType === 'none' || !c.recurrenceType){
+    if(c.date >= inicioISO && c.date <= fimISO) out.push(c.date);
+    return out;
+  }
+
+  let cursor = new Date(Math.max(inicio.getTime(), dataBase.getTime()));
+  let guard = 0;
+  while(cursor <= fim && guard < 400){
+    guard++;
+    const iso = isoDate(cursor.getFullYear(), cursor.getMonth(), cursor.getDate());
+    if(c.recurrenceType === 'daily'){
+      out.push(iso);
+    } else if(c.recurrenceType === 'weekly'){
+      if((c.recurrenceDays||[]).includes(cursor.getDay())) out.push(iso);
+    } else if(c.recurrenceType === 'monthly'){
+      if(cursor.getDate() === dataBase.getDate()) out.push(iso);
+    }
+    cursor.setDate(cursor.getDate()+1);
+  }
+  return out;
+}
+
+/* todas as ocorrências de todos os compromissos numa janela, já ordenadas */
+function ocorrenciasNaJanela(inicioISO, fimISO){
+  const out = [];
+  state.compromissos.forEach(c=>{
+    ocorrenciasCompromisso(c, inicioISO, fimISO).forEach(dataISO=>{
+      out.push({ compromisso:c, data:dataISO });
+    });
+  });
+  out.sort((a,b)=> a.data.localeCompare(b.data) || (a.compromisso.time||'').localeCompare(b.compromisso.time||''));
+  return out;
+}
+
+/* itens financeiros com vencimento no dia informado, dentro do mês atualmente carregado (state.month) */
+function itensFinanceirosNoDia(dia){
+  const out = [];
+  state.expenses.forEach(e=>{ if(e.dueDay===dia) out.push({ tipo:'Despesa', nome:e.name, pagina:'expenses' }); });
+  state.revenue.forEach(r=>{ if(r.dueDay===dia) out.push({ tipo:'Receita', nome:r.name, pagina:'revenue' }); });
+  state.cards.forEach(c=>{ if(c.dueDay===dia) out.push({ tipo:'Cartão', nome:c.name, pagina:'cards' }); });
+  state.subscriptions.forEach(x=>{ if(x.dueDay===dia) out.push({ tipo:'Assinatura', nome:x.name, pagina:'subscriptions' }); });
+  return out;
+}
+
+/* compromissos com aviso batendo hoje (dias até a ocorrência <= o prazo escolhido para ele) */
+function renderAgendaAlertsInto(elId){
+  const el = document.getElementById(elId);
+  if(!el) return;
+  const avisos = avisosDeAgendaHoje();
+  el.innerHTML = !avisos.length ? '' : `<div class="alert-box">
+    <h4>🔔 Compromissos chegando</h4>
+    ${avisos.map(o=>`<div class="alert-row"><span><strong>${esc(o.compromisso.name)}</strong> — ${o.data.split('-').reverse().join('/')}${o.compromisso.time?' às '+o.compromisso.time:''}</span></div>`).join('')}
+  </div>`;
+}
+
+function avisosDeAgendaHoje(){
+  const hojeISO = new Date().toISOString().slice(0,10);
+  const fim = new Date(); fim.setDate(fim.getDate()+31);
+  const fimISO = fim.toISOString().slice(0,10);
+  const ocorrencias = ocorrenciasNaJanela(hojeISO, fimISO);
+  const hoje = new Date(hojeISO+'T00:00:00');
+  return ocorrencias.filter(o=>{
+    if(o.compromisso.status === 'concluido') return false;
+    const d = new Date(o.data+'T00:00:00');
+    const dias = Math.round((d - hoje) / 86400000);
+    return dias >= 0 && dias <= num(o.compromisso.remindDaysBefore);
+  }).sort((a,b)=> a.data.localeCompare(b.data));
+}
+
+function irParaPagina(pagina){
+  const link = document.querySelector(`.nav a[data-page="${pagina}"]`);
+  if(link) go(link);
+}
+
+async function addCompromisso(){
+  const name = document.getElementById('agName').value.trim();
+  const date = document.getElementById('agDate').value;
+  const time = document.getElementById('agTime').value || null;
+  const recurrenceType = document.getElementById('agRecur').value;
+  const dias = Array.from(document.querySelectorAll('.ag-dow.on')).map(b=>parseInt(b.dataset.dow));
+  const remind = parseInt(document.getElementById('agRemind').value) || 0;
+  const obs = document.getElementById('agObs').value.trim();
+  if(!name) return alert('Informe o nome do compromisso.');
+  if(!date) return alert('Informe a data.');
+  if(recurrenceType==='weekly' && !dias.length) return alert('Escolha ao menos um dia da semana para a repetição semanal.');
+  if(!sbUser) return alert('Sessão expirada. Entre novamente.');
+
+  badge('wait','salvando...');
+  const { data, error } = await sb.from('compromissos').insert([{
+    user_id:sbUser.id, name, date, time,
+    recurrence_type:recurrenceType, recurrence_days:recurrenceType==='weekly'?dias:[],
+    remind_days_before:remind, status:'pendente', obs:obs||null
+  }]).select();
+  if(error || !data || !data[0]){ console.error(error); badge('err','não foi possível salvar'); return alert('Não consegui salvar o compromisso. Verifique a conexão.'); }
+  const r = data[0];
+  state.compromissos.push({ id:r.id, name:r.name, date:r.date, time:r.time,
+    recurrenceType:r.recurrence_type, recurrenceDays:r.recurrence_days||[],
+    remindDaysBefore:num(r.remind_days_before), status:'pendente', obs:r.obs||'' });
+  cacheLocal();
+  clearForm('ag');
+  document.querySelectorAll('.ag-dow').forEach(b=>b.classList.remove('on'));
+  document.getElementById('agRecurExtra').style.display = 'none';
+  renderAgenda();
+  badge('ok','salvo');
+  toast('Compromisso adicionado');
+}
+
+async function toggleCompromissoStatus(id){
+  const c = state.compromissos.find(x=>x.id===id);
+  if(!c) return;
+  const novo = c.status === 'concluido' ? 'pendente' : 'concluido';
+  const { error } = await sb.from('compromissos').update({ status:novo }).eq('id', id);
+  if(error){ console.error(error); badge('err','não salvou'); return; }
+  c.status = novo;
+  cacheLocal();
+  renderAgenda();
+  badge('ok','salvo');
+}
+
+async function removeCompromisso(id){
+  const c = state.compromissos.find(x=>x.id===id);
+  if(!c) return;
+  if(!confirm('Excluir "'+c.name+'"?'+(c.recurrenceType!=='none'?'\n\nIsso remove TODAS as repetições futuras.':''))) return;
+  badge('wait','excluindo...');
+  const { error } = await sb.from('compromissos').delete().eq('id', id);
+  if(error){ console.error(error); badge('err','não foi possível excluir'); return alert('Não consegui excluir. Verifique a conexão.'); }
+  state.compromissos = state.compromissos.filter(x=>x.id!==id);
+  cacheLocal();
+  renderAgenda();
+  badge('ok','excluído');
+}
+
+/* arrastar para remarcar: só compromissos avulsos (sem repetição) mudam de data ao soltar em outro dia */
+async function remarcarCompromisso(id, novaDataISO){
+  const c = state.compromissos.find(x=>x.id===id);
+  if(!c) return;
+  if(c.recurrenceType !== 'none'){ toast('Compromissos recorrentes não podem ser arrastados — edite para mudar o padrão'); renderAgenda(); return; }
+  if(c.date === novaDataISO) return;
+  badge('wait','remarcando...');
+  const { error } = await sb.from('compromissos').update({ date:novaDataISO }).eq('id', id);
+  if(error){ console.error(error); badge('err','não salvou'); renderAgenda(); return; }
+  c.date = novaDataISO;
+  cacheLocal();
+  renderAgenda();
+  badge('ok','remarcado');
+  toast('Remarcado para '+novaDataISO.split('-').reverse().join('/'));
+}
+
+function toggleRecurExtra(){
+  const tipo = document.getElementById('agRecur').value;
+  document.getElementById('agRecurExtra').style.display = tipo==='weekly' ? 'block' : 'none';
+}
+function toggleDow(btn){ btn.classList.toggle('on'); }
+
+let agendaDragId = null;
+
+function renderAgenda(){
+  const grid = document.getElementById('agendaGrid');
+  if(!grid) return;
+
+  const [anoStr, mesStr] = state.month.split('-');
+  const ano = parseInt(anoStr), mesIdx = parseInt(mesStr)-1;
+  document.getElementById('agendaMesLabel').textContent = monthLabel(state.month);
+
+  const totalDias = new Date(ano, mesIdx+1, 0).getDate();
+  const primeiroDow = new Date(ano, mesIdx, 1).getDay();
+  const inicioISO = isoDate(ano, mesIdx, 1);
+  const fimISO = isoDate(ano, mesIdx, totalDias);
+  const ocorrencias = ocorrenciasNaJanela(inicioISO, fimISO);
+  const hojeISO = new Date().toISOString().slice(0,10);
+
+  let html = DOW_LABEL.map(d=>`<div class="ag-dow-head">${d}</div>`).join('');
+  for(let i=0;i<primeiroDow;i++) html += '<div class="ag-day other"></div>';
+
+  for(let dia=1; dia<=totalDias; dia++){
+    const dataISO = isoDate(ano, mesIdx, dia);
+    const finItens = itensFinanceirosNoDia(dia);
+    const pessItens = ocorrencias.filter(o=>o.data===dataISO);
+    const hoje = dataISO===hojeISO ? ' today' : '';
+    const finDots = finItens.slice(0,4).map(f=>`<div class="ag-dot fin" title="${esc(f.tipo+': '+f.nome)}"></div>`).join('');
+    const pessChips = pessItens.slice(0,3).map(o=>`<div class="ag-chip${o.compromisso.status==='concluido'?' done':''}" draggable="${o.compromisso.recurrenceType==='none'}" ondragstart="agendaDragStart(event,'${o.compromisso.id}')" ondragend="this.classList.remove('dragging')" title="${esc(o.compromisso.name)}">${esc((o.compromisso.name||'').slice(0,11))}</div>`).join('');
+    html += `<div class="ag-day${hoje}" data-date="${dataISO}" ondragover="event.preventDefault();this.classList.add('drop-ok')" ondragleave="this.classList.remove('drop-ok')" ondrop="agendaDrop(event,'${dataISO}')" onclick="abrirDiaAgenda('${dataISO}')">
+      <div class="ag-n">${dia}</div>
+      <div class="ag-dots">${finDots}</div>
+      ${pessChips}
+    </div>`;
+  }
+  grid.innerHTML = html;
+
+  /* aviso no topo da própria página */
+  renderAgendaAlertsInto('agendaAlerts');
+
+  /* hoje */
+  const hojeItensFin = itensFinanceirosNoDia(new Date(hojeISO+'T00:00:00').getMonth()===mesIdx ? new Date(hojeISO+'T00:00:00').getDate() : -1);
+  const hojePess = ocorrencias.filter(o=>o.data===hojeISO);
+  const elHoje = document.getElementById('agendaHoje');
+  if(elHoje){
+    const linhas = [
+      ...hojePess.map(o=>agendaItemHtml(o.compromisso,'pess')),
+      ...hojeItensFin.map(f=>agendaFinHtml(f))
+    ];
+    elHoje.innerHTML = linhas.length ? linhas.join('') : '<p class="empty">Nada para hoje</p>';
+  }
+
+  /* próximos dias (7 dias, sem contar hoje) */
+  const prox = new Date(hojeISO+'T00:00:00'); prox.setDate(prox.getDate()+7);
+  const proxISO = prox.toISOString().slice(0,10);
+  const amanha = new Date(hojeISO+'T00:00:00'); amanha.setDate(amanha.getDate()+1);
+  const amanhaISO = amanha.toISOString().slice(0,10);
+  const ocorrProx = ocorrenciasNaJanela(amanhaISO, proxISO);
+  const elProx = document.getElementById('agendaProximos');
+  if(elProx){
+    elProx.innerHTML = ocorrProx.length
+      ? ocorrProx.map(o=>agendaItemHtml(o.compromisso,'pess',o.data)).join('')
+      : '<p class="empty">Nada nos próximos 7 dias</p>';
+  }
+
+  /* lista completa do mês, para gerenciar (editar/excluir) */
+  const elLista = document.getElementById('agendaLista');
+  if(elLista){
+    const doMes = state.compromissos.filter(c=>{
+      const primeiraOcorrencia = ocorrenciasCompromisso(c, inicioISO, fimISO);
+      return primeiraOcorrencia.length > 0;
+    });
+    elLista.innerHTML = doMes.length ? doMes.map(c=>`
+      <div class="ag-item">
+        <div>
+          <strong>${esc(c.name)}</strong>
+          <span class="ag-meta">${c.date.split('-').reverse().join('/')}${c.time?' · '+c.time:''} · ${REC_LABEL[c.recurrenceType]||'não repete'}${c.remindDaysBefore>0?' · avisa '+c.remindDaysBefore+'d antes':''}</span>
+          ${c.obs?`<div class="ag-obs">${esc(c.obs)}</div>`:''}
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span class="tag click ${c.status==='concluido'?'ok':'pd'}" onclick="toggleCompromissoStatus('${c.id}')">${c.status==='concluido'?'Concluído':'Pendente'}</span>
+          <button class="mini dl" onclick="removeCompromisso('${c.id}')">Excluir</button>
+        </div>
+      </div>`).join('')
+      : '<p class="empty">Nenhum compromisso neste mês</p>';
+  }
+}
+
+const REC_LABEL = { none:'não repete', daily:'diariamente', weekly:'semanalmente', monthly:'mensalmente' };
+
+function agendaItemHtml(c, tipo, dataISO){
+  return `<div class="item"><div class="tag ${tipo}"></div><div class="txt"><b>${esc(c.name)}</b><span>${dataISO?dataISO.split('-').reverse().join('/')+' · ':''}${c.time?c.time+' · ':''}${REC_LABEL[c.recurrenceType]||''}</span></div></div>`;
+}
+function agendaFinHtml(f){
+  return `<div class="item" style="cursor:pointer" onclick="irParaPagina('${f.pagina}')"><div class="tag fin"></div><div class="txt"><b>${esc(f.nome)}</b><span>${f.tipo}</span></div></div>`;
+}
+
+function agendaDragStart(ev, id){
+  const c = state.compromissos.find(x=>x.id===id);
+  if(c && c.recurrenceType !== 'none'){ ev.preventDefault(); toast('Compromissos recorrentes não podem ser arrastados — edite para mudar o padrão'); return; }
+  agendaDragId = id;
+  ev.target.classList.add('dragging');
+}
+
+function agendaDrop(ev, dataISO){
+  ev.preventDefault();
+  ev.currentTarget.classList.remove('drop-ok');
+  if(agendaDragId) remarcarCompromisso(agendaDragId, dataISO);
+  agendaDragId = null;
+}
+
+function abrirDiaAgenda(dataISO){
+  document.getElementById('agDate').value = dataISO;
+  document.getElementById('agName').focus();
 }
 
 /* ============ DASHBOARD: ARRASTAR E OCULTAR ============ */
@@ -1422,6 +1814,7 @@ const PAGE_META = {
   cards:['Cartões','Faturas e vencimentos'],
   subscriptions:['Assinaturas','Streaming, IA e outros serviços recorrentes'],
   loans:['Empréstimos','Cartão emprestado a familiares e amigos'],
+  agenda:['Agenda','Compromissos pessoais e vencimentos financeiros'],
   monthly:['Mensal','Fechamento por mês de referência'],
   forecast6:['Projeção 6 meses','Cartões, receitas e despesas projetados adiante'],
   goals:['Objetivos','Metas de poupança'],
@@ -1441,6 +1834,7 @@ function go(el){
   if(page==='forecast6') renderForecast6();
   if(page==='subscriptions') renderSubscriptions();
   if(page==='loans') renderLoans();
+  if(page==='agenda') renderAgenda();
   if(page==='tips') renderTips();
   if(page==='config') renderConfig();
 }
@@ -1513,6 +1907,7 @@ function refreshDashboard(){
   document.getElementById('kTopVal').textContent = all.length ? money(all[0].value) : money(0);
 
   renderSubscriptionAlertsInto('dashSubAlerts');
+  renderAgendaAlertsInto('dashAgendaAlerts');
   renderUpcoming();
   renderCardProjection();
   drawCharts();
